@@ -1,0 +1,23 @@
+{
+  "home": {
+    "id": "home",
+    "labelKey": "navHome",
+    "component": "HomePage"
+  },
+  "aiBricks": {
+    "id": "aiBricks",
+    "labelKey": "navAiBricks",
+    "component": "AiBricksPage"
+  },
+  "proCounsel": {
+    "id": "proCounsel",
+    "labelKey": "navProCounsel",
+    "component": "ProCounselPage"
+  },
+  "theMindSoul": {
+    "id": "theMindSoul",
+    "labelKey": "navTheMindSoul",
+    "component": "TheMindSoulPage"
+  }
+}
+
