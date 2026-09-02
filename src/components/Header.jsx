@@ -7,7 +7,6 @@ import {
   Home,
   Brain,
   GraduationCap,
-  Languages,
   Menu,
   X,
   Users,
@@ -35,13 +34,12 @@ const NAV_LINKS = [
   { id: "Pricing", nameKey: "navPricing", icon: Tag, path: "/pricing" },
 ];
 
-export default function Header({ onChangeLang }) {
-  const { t, i18n } = useTranslation();
+export default function Header() {
+  const { t } = useTranslation();
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const currentLang = i18n.language;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -79,19 +77,6 @@ export default function Header({ onChangeLang }) {
           </Link>
         );
       })}
-      <button
-        type="button"
-        onClick={() => {
-          onChangeLang(currentLang === "en" ? "es" : "en");
-          setIsMobileMenuOpen(false);
-        }}
-        className={`flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-slate-300 transition-colors duration-200 hover:border-white/30 hover:bg-white/[0.08] hover:text-white ${
-          mobile ? "w-full justify-center" : ""
-        }`}
-      >
-        <Languages aria-hidden="true" className="h-4 w-4" />
-        {t("langSwitch")}
-      </button>
     </>
   );
 

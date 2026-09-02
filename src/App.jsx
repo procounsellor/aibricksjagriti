@@ -1,6 +1,5 @@
 import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import Header from "./components/Header.jsx";
 import Footer from "./components/Footer.jsx";
 import LoadingSpinner from "./components/LoadingSpinner.jsx";
@@ -31,14 +30,10 @@ const PricingPage = lazy(() =>
 );
 
 function AppRouter() {
-  const { i18n } = useTranslation();
-
-  const changeLanguage = (lng) => i18n.changeLanguage(lng);
-
   return (
     <BrowserRouter>
       <div className="flex flex-col min-h-screen font-sans text-white bg-gray-900 overflow-hidden">
-        <Header onChangeLang={changeLanguage} />
+        <Header />
         <main className="flex-grow relative">
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
