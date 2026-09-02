@@ -13,7 +13,6 @@ const resources = {
       headerMenuOpen: "Open menu",
       headerMenuClose: "Close menu",
       // ===== Home: hero =====
-      heroBadge: "Web · AI · Mobile — one senior team",
       heroTitleStart: "We build tomorrow's ",
       heroTitleAccent: "technology",
       heroTitleEnd: ", today.",
@@ -461,7 +460,6 @@ const resources = {
       headerMenuOpen: "Abrir menú",
       headerMenuClose: "Cerrar menú",
       // ===== Inicio: hero =====
-      heroBadge: "Web · IA · Móvil — un solo equipo senior",
       heroTitleStart: "Construimos la ",
       heroTitleAccent: "tecnología",
       heroTitleEnd: " del mañana, hoy.",

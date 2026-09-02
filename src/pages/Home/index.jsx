@@ -187,7 +187,7 @@ export default function HomePage() {
     <div className="relative w-full min-h-screen overflow-x-hidden bg-ink-950 text-white">
       {/* ================= HERO ================= */}
       <section
-        aria-label={t("heroBadge")}
+        aria-label={t("heroTitleStart")}
         className="relative h-screen w-full overflow-hidden"
       >
         {/* 3D background — untouched wiring */}
@@ -226,19 +226,9 @@ export default function HomePage() {
 
         {/* Hero content */}
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center">
-          <motion.div {...heroItem(0.1)}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-xs font-medium tracking-wide text-slate-200 backdrop-blur-md">
-              <span
-                aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_2px_rgba(34,211,238,0.7)]"
-              />
-              {t("heroBadge")}
-            </span>
-          </motion.div>
-
           <motion.h1
-            {...heroItem(0.22)}
-            className="mt-6 max-w-5xl text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl lg:text-7xl"
+            {...heroItem(0.1)}
+            className="max-w-5xl text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl lg:text-7xl"
           >
             {t("heroTitleStart")}
             <span className="text-gradient-brand">{t("heroTitleAccent")}</span>
