@@ -3,15 +3,15 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import {
-  TRACK_CURVE,
-  RAIL_LIFT,
-  STATIONS,
-  nearestStationIndex,
-  tramMotion,
+  PATH_CURVE,
+  WALK_LIFT,
+  CHECKPOINTS,
+  nearestCheckpointIndex,
+  climbMotion,
 } from '../trackData';
 
 const UP = new THREE.Vector3(0, 1, 0);
-const _tramPos = new THREE.Vector3();
+const _studentPos = new THREE.Vector3();
 const _tan = new THREE.Vector3();
 const _side = new THREE.Vector3();
 const _desired = new THREE.Vector3();
@@ -19,30 +19,31 @@ const _lookTarget = new THREE.Vector3();
 const _blendPos = new THREE.Vector3();
 const _blendLook = new THREE.Vector3();
 
-// Intro establishing shot: wide over the neon city, before diving down
-// behind the tram.
-const INTRO_POS = new THREE.Vector3(34, 27, 80);
-const INTRO_LOOK = new THREE.Vector3(-6, 1, -50);
+// Intro establishing shot: a wide reveal of the whole book spiral rising out
+// of the cloud sea, before diving down behind the student at its base.
+const INTRO_POS = new THREE.Vector3(50, 40, 54);
+const INTRO_LOOK = new THREE.Vector3(0, 24, -16);
 const INTRO_HOLD = 2.4; // stays wide while the page loader is still up
 const INTRO_SWEEP = 2.5; // the dive itself
 
 const BASE_FOV = 60;
 
 /**
- * Cinematic camera rig for the Neon Metro Timeline.
+ * Cinematic camera rig for the Ascent to Graduation.
  *
- * Layers, all continuous (no jump cuts), all driven off the shared tramMotion
- * state written by the scene driver earlier in the frame:
+ * Layers, all continuous (no jump cuts), all driven off the shared
+ * climbMotion state written by the scene driver earlier in the frame:
  *
- * - scripted intro sweep on load: a wide city establishing shot that dives
- *   down behind the tram over ~2.5s (held during the page loader; skipped
- *   under reduced motion or when the page loads mid-scroll);
- * - smoothed follow with a swing out to the platform's opposite side at each
- *   station — now a LOW-ANGLE hero shot: the camera drops toward platform
- *   level and tilts up at the holographic sign;
- * - hyperspeed FOV kick: +7 degrees at full warp, eased by tramMotion.hyper;
- * - arrival punch: a brief dolly-in + slight FOV tighten as the tram crosses
- *   a station (tramMotion.arrivalPulse), for a beat of slow-motion weight;
+ * - scripted intro sweep on load: a wide reveal of the whole book spiral
+ *   that dives down behind the student over ~2.5s (held during the page
+ *   loader; skipped under reduced motion or when the page loads mid-scroll);
+ * - smoothed follow with a swing to the INSIDE of the spiral at each
+ *   checkpoint — a LOW-ANGLE hero shot: the camera drops toward platform
+ *   level and tilts up so the vignette + holographic sign face the lens;
+ * - rush FOV kick: +7 degrees at full page-rush, eased by climbMotion.rush;
+ * - arrival punch: a brief dolly-in + slight FOV tighten as the student
+ *   crosses a checkpoint (climbMotion.arrivalPulse), for a beat of
+ *   slow-motion weight;
  * - mouse parallax: +/-1.5 units of lateral drift, lerped.
  *
  * Reduced motion: plain snap follow, fixed FOV, no intro, no parallax.
@@ -69,37 +70,37 @@ export function useCinematicCamera() {
   }, [prefersReducedMotion]);
 
   useFrame((_, delta) => {
-    const t = tramMotion.t;
-    TRACK_CURVE.getPointAt(t, _tramPos);
-    _tramPos.y += RAIL_LIFT;
-    TRACK_CURVE.getTangentAt(t, _tan);
+    const t = climbMotion.t;
+    PATH_CURVE.getPointAt(t, _studentPos);
+    _studentPos.y += WALK_LIFT + 0.9; // frame the figure, not its feet
+    PATH_CURVE.getTangentAt(t, _tan);
     _side.crossVectors(UP, _tan).setY(0).normalize();
 
-    // Station-proximity swing: 0 between stations, 1 exactly at a station.
+    // Checkpoint-proximity swing: 0 between checkpoints, 1 exactly at one.
     let swing = 0;
     let sideSign = 1;
     if (!prefersReducedMotion) {
-      const st = STATIONS[nearestStationIndex(t)];
-      const d = Math.abs(t - st.t);
+      const cp = CHECKPOINTS[nearestCheckpointIndex(t)];
+      const d = Math.abs(t - cp.t);
       const prox = 1 - Math.min(d / 0.042, 1);
       swing = prox * prox * (3 - 2 * prox); // smoothstep
-      // Swing to the side opposite the platform: the sign faces the track,
-      // so this puts it square to the camera.
-      sideSign = -st.platformSign;
+      // Swing to the inside of the spiral (opposite the vignette platform):
+      // the sign faces the path, so this puts it square to the camera.
+      sideSign = -cp.platformSign;
     }
 
-    const hyper = prefersReducedMotion ? 0 : tramMotion.hyper;
-    const pulse = prefersReducedMotion ? 0 : tramMotion.arrivalPulse;
+    const rush = prefersReducedMotion ? 0 : climbMotion.rush;
+    const pulse = prefersReducedMotion ? 0 : climbMotion.arrivalPulse;
     const punch = pulse * pulse; // sharper attack, soft decay
 
-    // Follow offset. At stations: closer, swung wide and LOW (hero angle).
-    // On arrival: an extra dolly-in punch. In hyperspeed: hang back a touch.
-    const back = 9.5 - swing * 4.6 - punch * 1.6 + hyper * 1.2;
+    // Follow offset. At checkpoints: closer, swung wide and LOW (hero
+    // angle). On arrival: an extra dolly-in punch. In the rush: hang back.
+    const back = 9 - swing * 4.4 - punch * 1.6 + rush * 1.2;
     _desired
-      .copy(_tramPos)
+      .copy(_studentPos)
       .addScaledVector(_tan, -back)
-      .addScaledVector(_side, sideSign * swing * 6.8);
-    _desired.y += 3.4 - swing * 1.9 + hyper * 0.5;
+      .addScaledVector(_side, sideSign * swing * 6.6);
+    _desired.y += 2.9 - swing * 2.1 + rush * 0.5;
 
     // Mouse parallax (smoothed, +/-1.5 lateral, +/-0.7 vertical).
     if (!prefersReducedMotion) {
@@ -111,10 +112,10 @@ export function useCinematicCamera() {
       _desired.y += -m.sy * 0.7;
     }
 
-    // Look slightly ahead of the tram; at stations, tilt up toward the
-    // holographic sign for the low-angle hero framing.
-    TRACK_CURVE.getPointAt(Math.min(t + 0.02, 1), _lookTarget);
-    _lookTarget.y += RAIL_LIFT + 0.8 + swing * 1.15;
+    // Look slightly ahead of the student up the stairway; at checkpoints,
+    // tilt up toward the holographic sign for the low-angle hero framing.
+    PATH_CURVE.getPointAt(Math.min(t + 0.02, 1), _lookTarget);
+    _lookTarget.y += WALK_LIFT + 0.9 + swing * 1.6;
 
     // --- Intro sweep ---------------------------------------------------------
     const intro = introRef.current;
@@ -152,10 +153,10 @@ export function useCinematicCamera() {
       camera.lookAt(lookRef.current);
     }
 
-    // --- FOV: hyperspeed kick + arrival tighten + wide intro -----------------
+    // --- FOV: rush kick + arrival tighten + wide intro -----------------------
     let fov = BASE_FOV;
     if (!prefersReducedMotion) {
-      fov = BASE_FOV + hyper * 7 - punch * 4 + (1 - introBlend) * 9;
+      fov = BASE_FOV + rush * 7 - punch * 4 + (1 - introBlend) * 9;
     }
     if (Math.abs(camera.fov - fov) > 0.01) {
       camera.fov = fov;

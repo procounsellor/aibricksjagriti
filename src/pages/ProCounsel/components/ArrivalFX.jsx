@@ -53,7 +53,7 @@ const pillarGeom = new THREE.CylinderGeometry(1.15, 0.85, 1, 18, 1, true);
 
 const CONFETTI_COUNT = 140;
 const confettiMat = new THREE.PointsMaterial({
-  size: 0.24,
+  size: 0.26,
   vertexColors: true,
   transparent: true,
   opacity: 1,
@@ -65,17 +65,19 @@ const confettiMat = new THREE.PointsMaterial({
 });
 
 /**
- * Station arrivals as events. One pooled set of meshes, retargeted on every
- * `trigger(station)` call from the scene driver (never triggered under
- * reduced motion — the driver's arrival detection is already gated):
+ * Checkpoint arrivals as events. One pooled set of meshes, retargeted on
+ * every `trigger(checkpoint)` call from the scene driver (never triggered
+ * under reduced motion — the driver's arrival detection is already gated):
  *
  * - an expanding holographic shockwave ring racing across the platform,
- * - a vertical light pillar erupting from the platform for ~1s,
- * - and, at the FINAL gold station, a taller/longer pillar plus a rain of
- *   golden confetti particles.
+ * - a vertical light pillar erupting beside the path for ~1s,
+ * - a flurry of glowing page-flakes raining down in the checkpoint's accent
+ *   color (a reduced slice of the pool via drawRange),
+ * - and, at the FINAL gold summit, the maximal version: a taller / longer
+ *   pillar plus the full golden confetti rain — the "you made it" moment.
  *
- * 3 draw calls while an arrival is playing, all hidden otherwise. All colors
- * are pushed above 1.0 so the whole event blooms hard.
+ * 3 draw calls while an arrival is playing, all hidden otherwise. All
+ * colors are pushed above 1.0 so the whole event blooms hard.
  */
 const ArrivalFX = forwardRef(function ArrivalFX(props, ref) {
   const ringRef = useRef();
@@ -90,8 +92,9 @@ const ArrivalFX = forwardRef(function ArrivalFX(props, ref) {
     ringMax: 13,
     confetti: false,
     confettiLife: 0,
+    confettiDuration: 2.6,
+    confettiCount: CONFETTI_COUNT,
     origin: new THREE.Vector3(),
-    confettiOrigin: new THREE.Vector3(),
     vel: new Float32Array(CONFETTI_COUNT * 3),
   });
 
@@ -148,53 +151,59 @@ const ArrivalFX = forwardRef(function ArrivalFX(props, ref) {
   useImperativeHandle(
     ref,
     () => ({
-      trigger: (station) => {
+      trigger: (checkpoint) => {
         const s = fx.current;
-        // Event centre: middle of the platform slab.
+        // Event centre: the middle of the checkpoint platform, off the
+        // outward side of the book path.
         s.origin.set(
-          station.position.x + station.side.x * 2.3,
-          station.position.y - 0.28,
-          station.position.z + station.side.z * 2.3
+          checkpoint.position.x + checkpoint.side.x * 3.9,
+          checkpoint.position.y - 0.2,
+          checkpoint.position.z + checkpoint.side.z * 3.9
         );
         s.life = 1;
         s.active = true;
-        s.duration = station.isFinal ? 1.9 : 1.05;
-        s.pillarHeight = station.isFinal ? 26 : 15;
-        s.ringMax = station.isFinal ? 19 : 13;
+        s.duration = checkpoint.isFinal ? 1.9 : 1.05;
+        s.pillarHeight = checkpoint.isFinal ? 26 : 14;
+        s.ringMax = checkpoint.isFinal ? 18 : 12;
 
-        // HDR tint from the station accent.
-        _color.copy(station.color).multiplyScalar(2.2);
+        // HDR tint from the checkpoint accent.
+        _color.copy(checkpoint.color).multiplyScalar(2.2);
         ringMat.color.copy(_color);
         pillarMat.color.copy(_color);
 
-        if (station.isFinal) {
-          // Golden confetti rain from above the platform.
-          s.confetti = true;
-          s.confettiLife = 1;
-          s.confettiOrigin.copy(s.origin);
-          const positions = confettiGeom.attributes.position.array;
-          const colors = confettiGeom.attributes.color.array;
-          const vel = s.vel;
+        // Glowing page-flakes: a short accent-colored flurry at every
+        // checkpoint; the full, longer golden rain at the summit.
+        s.confetti = true;
+        s.confettiLife = 1;
+        s.confettiDuration = checkpoint.isFinal ? 2.6 : 1.4;
+        s.confettiCount = checkpoint.isFinal ? CONFETTI_COUNT : 64;
+        confettiGeom.setDrawRange(0, s.confettiCount);
+        const positions = confettiGeom.attributes.position.array;
+        const colors = confettiGeom.attributes.color.array;
+        const vel = s.vel;
+        if (checkpoint.isFinal) {
           _color.set(NEON_GOLD);
-          for (let i = 0; i < CONFETTI_COUNT; i++) {
-            const vi = i * 3;
-            positions[vi] = s.origin.x + (Math.random() - 0.5) * 9;
-            positions[vi + 1] = s.origin.y + 8 + Math.random() * 7;
-            positions[vi + 2] = s.origin.z + (Math.random() - 0.5) * 9;
-            vel[vi] = (Math.random() - 0.5) * 1.4;
-            vel[vi + 1] = -(1.6 + Math.random() * 2.6);
-            vel[vi + 2] = (Math.random() - 0.5) * 1.4;
-            // Gold with white-hot sparkle variation, pushed into HDR.
-            const bright = 1.2 + Math.random() * 1.4;
-            colors[vi] = _color.r * bright;
-            colors[vi + 1] = _color.g * bright;
-            colors[vi + 2] = (_color.b + Math.random() * 0.35) * bright;
-          }
-          confettiGeom.attributes.position.needsUpdate = true;
-          confettiGeom.attributes.color.needsUpdate = true;
-          if (confettiRef.current) confettiRef.current.visible = true;
-          confettiMat.opacity = 1;
+        } else {
+          _color.copy(checkpoint.color);
         }
+        for (let i = 0; i < s.confettiCount; i++) {
+          const vi = i * 3;
+          positions[vi] = s.origin.x + (Math.random() - 0.5) * 8;
+          positions[vi + 1] = s.origin.y + 7 + Math.random() * 7;
+          positions[vi + 2] = s.origin.z + (Math.random() - 0.5) * 8;
+          vel[vi] = (Math.random() - 0.5) * 1.4;
+          vel[vi + 1] = -(1.6 + Math.random() * 2.6);
+          vel[vi + 2] = (Math.random() - 0.5) * 1.4;
+          // Accent with white-hot sparkle variation, pushed into HDR.
+          const bright = 1.2 + Math.random() * 1.4;
+          colors[vi] = _color.r * bright;
+          colors[vi + 1] = _color.g * bright;
+          colors[vi + 2] = (_color.b + Math.random() * 0.3) * bright;
+        }
+        confettiGeom.attributes.position.needsUpdate = true;
+        confettiGeom.attributes.color.needsUpdate = true;
+        if (confettiRef.current) confettiRef.current.visible = true;
+        confettiMat.opacity = 1;
       },
     }),
     [confettiGeom, ringMat, pillarMat]
@@ -239,19 +248,19 @@ const ArrivalFX = forwardRef(function ArrivalFX(props, ref) {
     }
 
     if (s.confetti && confetti) {
-      s.confettiLife -= delta / 2.6;
+      s.confettiLife -= delta / s.confettiDuration;
       if (s.confettiLife <= 0) {
         s.confetti = false;
         confetti.visible = false;
       } else {
         const positions = confettiGeom.attributes.position.array;
         const vel = s.vel;
-        for (let i = 0; i < CONFETTI_COUNT; i++) {
+        for (let i = 0; i < s.confettiCount; i++) {
           const vi = i * 3;
           positions[vi] += vel[vi] * delta;
           positions[vi + 1] += vel[vi + 1] * delta;
           positions[vi + 2] += vel[vi + 2] * delta;
-          // Gentle flutter drift.
+          // Gentle page-flutter drift.
           vel[vi] += (Math.random() - 0.5) * delta * 2;
           vel[vi + 2] += (Math.random() - 0.5) * delta * 2;
         }

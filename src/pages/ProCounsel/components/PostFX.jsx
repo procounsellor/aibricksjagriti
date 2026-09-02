@@ -9,7 +9,7 @@ import {
   ToneMapping,
 } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
-import { tramMotion } from '../trackData';
+import { climbMotion } from '../trackData';
 import { useQualityTier } from '../../../hooks/useAdaptiveQuality';
 
 // Stable Vector2 handed to the ChromaticAberrationEffect constructor. It is
@@ -20,8 +20,8 @@ const CA_BASE = new THREE.Vector2(0.00028, 0.00016);
 
 /**
  * Per-frame chromatic aberration driver: a whisper at cruise, a hard spike
- * during hyperspeed, and a short blip on station arrival. Mounted only when
- * motion is allowed; reduced-motion users get no CA at all.
+ * during the page rush, and a short blip on checkpoint arrival. Mounted only
+ * when motion is allowed; reduced-motion users get no CA at all.
  */
 function DynamicChromaticAberration() {
   const effectRef = useRef();
@@ -30,7 +30,7 @@ function DynamicChromaticAberration() {
     const effect = effectRef.current;
     if (!effect) return;
     const k =
-      0.00028 + tramMotion.hyper * 0.0038 + tramMotion.arrivalPulse * 0.0012;
+      0.00028 + climbMotion.rush * 0.0038 + climbMotion.arrivalPulse * 0.0012;
     effect.offset.set(k, k * 0.55);
   });
 
@@ -50,7 +50,8 @@ function DynamicChromaticAberration() {
  * The composer renders the scene un-tonemapped into a half-float buffer, so
  * every toneMapped:false material whose color sits above 1.0 genuinely bleeds
  * light through the mipmap-blurred Bloom (threshold 1: LDR content like the
- * city facades stays crisp). ACES filmic tone mapping is reapplied as an
+ * book covers and vignette props stays crisp). ACES filmic tone mapping is
+ * reapplied as an
  * explicit effect AFTER bloom (the composer forces the renderer itself to
  * NoToneMapping), then a soft vignette seats the frame.
  *

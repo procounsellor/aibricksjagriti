@@ -3,18 +3,18 @@ import { useFrame } from '@react-three/fiber';
 import { Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import {
-  NeonTrack,
-  Stations,
-  Tram,
-  TramTrail,
-  CityBackdrop,
-  GridGround,
+  DawnSky,
+  StarField,
+  CloudSea,
+  BookPath,
+  FloatingBooks,
+  Checkpoints,
+  Student,
+  SparkleTrail,
+  PageRush,
   ArrivalBursts,
   ArrivalFX,
-  LightBeams,
-  NeonTunnels,
-  HyperspeedStreaks,
-  AuroraSky,
+  LibraryLight,
   PostFX,
 } from './components';
 import { useCinematicCamera } from './hooks/useAnimations';
@@ -22,49 +22,54 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useWebGLContextLoss } from '../../hooks/useWebGLContextLoss';
 import { PRIMARY_INDIGO } from './colors';
 import {
-  STATIONS,
-  NUM_STATIONS,
+  CHECKPOINTS,
+  NUM_CHECKPOINTS,
+  SPIRAL_CENTER,
   warpScroll,
-  tramMotion,
-  resetTramMotion,
+  climbMotion,
+  resetClimbMotion,
 } from './trackData';
 
 /**
- * Neon Metro Timeline — hyperdrive edition.
+ * Ascent to Graduation.
  *
- * A glowing light-rail line sweeps through a dark neon city under an aurora
- * sky. The 9 admission stages are stations along the track (t = 0.15 -> 0.95,
- * evenly spaced — the same mapping the old scene used, so the DOM OverlayText
- * card timing still lines up with arrivals). A tram carrying the student
- * hyperspeeds between them as the user scrolls, threading neon tunnel gates,
- * and every station arrival detonates a shockwave + light pillar event. A
- * real HDR bloom composer (PostFX) makes all of the neon genuinely bleed.
+ * A rising, gently spiraling stairway of giant glowing books climbs out of
+ * a cloud sea, through a deep-indigo study-cosmos, toward a golden dawn
+ * summit. The 9 admission stages are checkpoints along the climb
+ * (t = 0.15 -> 0.95, evenly spaced — the same mapping the old scene used,
+ * so the DOM OverlayText card timing still lines up with arrivals). A small
+ * student walks the books as the user scrolls; between checkpoints the warp
+ * curve flings them forward and loose glowing pages rush past the camera,
+ * and every arrival detonates a shockwave + light pillar + page flurry. At
+ * the summit, a convocation stage waits under a hovering graduation cap
+ * that lifts and spins in a golden confetti rain. A real HDR bloom composer
+ * (PostFX) makes all of the glow genuinely bleed.
  *
  * The driver useFrame below (priority -2, so it runs before every other
- * subscriber) converts raw scroll into a smoothed, station-eased curve-t and
- * writes it — plus derived hyperspeed / arrival-pulse factors — into the
- * shared tramMotion object. The tram, trail, speed-lines, tunnels, post
- * effects and cinematic camera all read from that — no React state is touched
- * during scroll.
+ * subscriber) converts raw scroll into a smoothed, checkpoint-eased curve-t
+ * and writes it — plus derived rush / arrival-pulse factors — into the
+ * shared climbMotion object. The student, page rush, sparkle wake, post
+ * effects and cinematic camera all read from that — no React state is
+ * touched during scroll.
  */
 export default function ProCounselScene({ scrollRef }) {
   const prefersReducedMotion = useReducedMotion();
-  const stationsRef = useRef();
+  const checkpointsRef = useRef();
   const burstsRef = useRef();
   const arrivalFxRef = useRef();
 
   // Minimal WebGL context-loss handling for this canvas
   useWebGLContextLoss();
 
-  // tramMotion is a module singleton — reset it when the scene (re)mounts.
+  // climbMotion is a module singleton — reset it when the scene (re)mounts.
   useEffect(() => {
-    resetTramMotion();
+    resetClimbMotion();
   }, []);
 
-  // --- Driver: scroll -> tram t, hyperspeed factor, arrival events ----------
+  // --- Driver: scroll -> climb t, rush factor, arrival events ---------------
   useFrame((_, delta) => {
     const s = THREE.MathUtils.clamp(scrollRef?.current ?? 0, 0, 1);
-    const prev = tramMotion.t;
+    const prev = climbMotion.t;
     let t;
     if (prefersReducedMotion) {
       // Snap straight to the scroll position — no easing flourishes.
@@ -74,38 +79,40 @@ export default function ProCounselScene({ scrollRef }) {
       const alpha = 1 - Math.pow(1 - 0.16, delta * 60);
       t = prev + (target - prev) * alpha;
     }
-    tramMotion.prevT = prev;
-    tramMotion.t = t;
+    climbMotion.prevT = prev;
+    climbMotion.t = t;
 
-    // Smoothed speed estimate (drives the trail, streaks, FOV, CA...).
+    // Smoothed speed estimate (drives the wake, page rush, FOV, CA...).
     const instSpeed = delta > 0 ? Math.abs(t - prev) / delta : 0;
-    tramMotion.speed += (instSpeed - tramMotion.speed) * Math.min(1, delta * 8);
+    climbMotion.speed +=
+      (instSpeed - climbMotion.speed) * Math.min(1, delta * 8);
 
-    // Hyperspeed factor: kicks in fast when the tram flies mid-segment,
-    // eases out more gently as the warp curve brakes it into a station.
-    const targetHyper = prefersReducedMotion
+    // Rush factor: kicks in fast when the student flies mid-segment, eases
+    // out more gently as the warp curve brakes into a checkpoint.
+    const targetRush = prefersReducedMotion
       ? 0
-      : THREE.MathUtils.smoothstep(tramMotion.speed, 0.1, 0.32);
-    tramMotion.hyper +=
-      (targetHyper - tramMotion.hyper) *
-      Math.min(1, delta * (targetHyper > tramMotion.hyper ? 6 : 3));
+      : THREE.MathUtils.smoothstep(climbMotion.speed, 0.1, 0.32);
+    climbMotion.rush +=
+      (targetRush - climbMotion.rush) *
+      Math.min(1, delta * (targetRush > climbMotion.rush ? 6 : 3));
 
-    // Arrival pulse decay (set to 1 on station crossings below).
-    tramMotion.arrivalPulse = Math.max(
+    // Arrival pulse decay (set to 1 on checkpoint crossings below).
+    climbMotion.arrivalPulse = Math.max(
       0,
-      tramMotion.arrivalPulse - delta / 1.1
+      climbMotion.arrivalPulse - delta / 1.1
     );
 
-    // Arrival detection: did we cross a station t this frame?
+    // Arrival detection: did we cross a checkpoint t this frame?
     if (!prefersReducedMotion && Math.abs(t - prev) > 1e-6) {
-      for (let i = 0; i < NUM_STATIONS; i++) {
-        const stT = STATIONS[i].t;
-        if ((prev < stT && t >= stT) || (prev > stT && t <= stT)) {
-          if (stationsRef.current) stationsRef.current.boost(i);
-          if (burstsRef.current) burstsRef.current.trigger(STATIONS[i]);
-          if (arrivalFxRef.current) arrivalFxRef.current.trigger(STATIONS[i]);
-          tramMotion.arrivalPulse = 1;
-          tramMotion.arrivalIndex = i;
+      for (let i = 0; i < NUM_CHECKPOINTS; i++) {
+        const cpT = CHECKPOINTS[i].t;
+        if ((prev < cpT && t >= cpT) || (prev > cpT && t <= cpT)) {
+          if (checkpointsRef.current) checkpointsRef.current.boost(i);
+          if (burstsRef.current) burstsRef.current.trigger(CHECKPOINTS[i]);
+          if (arrivalFxRef.current)
+            arrivalFxRef.current.trigger(CHECKPOINTS[i]);
+          climbMotion.arrivalPulse = 1;
+          climbMotion.arrivalIndex = i;
         }
       }
     }
@@ -115,37 +122,42 @@ export default function ProCounselScene({ scrollRef }) {
 
   return (
     <>
-      {/* Night-city lighting: low ambient + cool moonlight wash. Neon parts
-          use unlit (basic) materials so they stay punchy regardless. */}
-      <ambientLight intensity={0.4} color="#5b5b8f" />
-      <directionalLight position={[18, 30, 10]} intensity={0.7} color="#7dd3fc" />
-      <hemisphereLight args={['#28285a', '#05050c', 0.6]} />
+      {/* Study-cosmos lighting: soft indigo ambient + a warm dawn key from
+          above the summit. Glowing parts use unlit (basic) HDR materials so
+          they stay punchy regardless. */}
+      <ambientLight intensity={0.45} color="#6b62a8" />
+      <directionalLight
+        position={[20, 70, 12]}
+        intensity={0.85}
+        color="#ffd9b0"
+      />
+      <hemisphereLight args={['#3a2f6b', '#0a0a18', 0.55]} />
 
-      <AuroraSky />
-      <NeonTrack />
-      <NeonTunnels />
-      <Stations ref={stationsRef} />
-      <Tram />
-      <TramTrail />
-      <HyperspeedStreaks />
-      <CityBackdrop />
-      <GridGround />
+      <DawnSky />
+      <StarField />
+      <CloudSea />
+      <BookPath />
+      <FloatingBooks />
+      <Checkpoints ref={checkpointsRef} />
+      <Student />
+      <SparkleTrail />
+      <PageRush />
       <ArrivalBursts ref={burstsRef} />
       <ArrivalFX ref={arrivalFxRef} />
-      <LightBeams prefersReducedMotion={prefersReducedMotion} />
+      <LibraryLight prefersReducedMotion={prefersReducedMotion} />
 
-      {/* Cheap ambient drift spanning the whole line */}
+      {/* Cheap ambient dust drifting through the whole climb volume */}
       <Sparkles
         count={110}
-        scale={[46, 14, 210]}
-        position={[0, 5, -55]}
+        scale={[85, 70, 85]}
+        position={[SPIRAL_CENTER.x, 26, SPIRAL_CENTER.z]}
         size={1.6}
         speed={prefersReducedMotion ? 0 : 0.25}
         color={PRIMARY_INDIGO}
         opacity={0.45}
       />
 
-      {/* Real bloom + CA + vignette — the neon finally bleeds light. */}
+      {/* Real bloom + CA + vignette — the glow finally bleeds. */}
       <PostFX prefersReducedMotion={prefersReducedMotion} />
     </>
   );

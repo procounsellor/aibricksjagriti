@@ -1,10 +1,10 @@
-// Shared track / station data for the Neon Metro Timeline.
+// Shared path / checkpoint data for "Ascent to Graduation".
 // Everything here is built once at module load and shared by every component,
 // so there is no prop drilling and no duplicate curve sampling.
 import * as THREE from 'three';
-import { STATION_COLORS } from './colors';
+import { CHECKPOINT_COLORS } from './colors';
 
-// The 9 admission stages (kept from the original scene's PILLAR_DATA).
+// The 9 admission stages (same content as the metro scene's STAGES).
 export const STAGES = [
   { timePeriod: 'Dec–Jan', keyEvent: 'Exam Preps & Pre-Boards' },
   { timePeriod: 'Feb–Mar', keyEvent: 'Board Exams' },
@@ -23,52 +23,70 @@ export const STAGES = [
 
 const UP = new THREE.Vector3(0, 1, 0);
 
-// Long sweeping S-curve heading into the city, with gentle elevation changes.
-export const TRACK_CURVE = new THREE.CatmullRomCurve3(
-  [
-    new THREE.Vector3(0, 0.6, 46),
-    new THREE.Vector3(5, 0.9, 28),
-    new THREE.Vector3(-5, 1.5, 8),
-    new THREE.Vector3(-9, 2.3, -14),
-    new THREE.Vector3(-2, 1.3, -38),
-    new THREE.Vector3(8, 2.7, -60),
-    new THREE.Vector3(6, 1.9, -86),
-    new THREE.Vector3(-6, 3.3, -110),
-    new THREE.Vector3(-2, 2.5, -134),
-    new THREE.Vector3(4, 3.1, -156),
-  ],
-  false,
-  'catmullrom',
-  0.5
-);
+// --- The ascent: a gently tightening spiral of giant books ------------------
+// Rises from darkness (t = 0, near the camera) about two turns up to a
+// golden summit at t = 1. Built from helix samples through a centripetal
+// Catmull-Rom so every consumer (path, camera, FX) shares one smooth curve.
+export const SPIRAL_CENTER = new THREE.Vector3(0, 0, -16);
+export const SUMMIT_HEIGHT = 54;
+const TURNS = 2.05;
+const START_ANGLE = Math.PI / 2;
 
-// How far above the curve centreline the tram floor sits.
-export const RAIL_LIFT = 0.55;
-// City ground level (track is elevated on pylons above this).
-export const GROUND_Y = -2;
+export const PATH_CURVE = (() => {
+  const pts = [];
+  const N = 20;
+  for (let i = 0; i <= N; i++) {
+    const f = i / N;
+    const angle = START_ANGLE + f * TURNS * Math.PI * 2;
+    const radius = 34 - f * 16; // spiral tightens toward the summit
+    const y = Math.pow(f, 1.06) * SUMMIT_HEIGHT;
+    pts.push(
+      new THREE.Vector3(
+        SPIRAL_CENTER.x + Math.cos(angle) * radius,
+        y,
+        SPIRAL_CENTER.z + Math.sin(angle) * radius
+      )
+    );
+  }
+  return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+})();
 
-export const NUM_STATIONS = 9;
-export const STATION_START_T = 0.15;
-export const STATION_END_T = 0.95;
-export const STATION_STEP =
-  (STATION_END_T - STATION_START_T) / (NUM_STATIONS - 1);
+// The summit point — the convocation stage and the library light live here.
+export const SUMMIT = PATH_CURVE.getPointAt(1).clone();
 
-// Precomputed station frames: position on curve, tangent, platform side, yaw.
-// Platforms alternate left / right of the track for variety; the camera swings
-// to the opposite side at each station so the holographic sign faces it.
-export const STATIONS = (() => {
+// How far above the curve centreline the student's feet sit (the book steps
+// are laid with their tops just under the curve).
+export const WALK_LIFT = 0.1;
+// Cloud sea level, far below the first book.
+export const CLOUD_Y = -10;
+
+export const NUM_CHECKPOINTS = 9;
+export const CHECKPOINT_START_T = 0.15;
+export const CHECKPOINT_END_T = 0.95;
+export const CHECKPOINT_STEP =
+  (CHECKPOINT_END_T - CHECKPOINT_START_T) / (NUM_CHECKPOINTS - 1);
+
+// Precomputed checkpoint frames: position on the curve, tangent, the side
+// vector pointing OUTWARD from the spiral (vignettes ring the outside of the
+// climb like exhibits), and yaw. The camera swings to the inside at each
+// checkpoint so the holographic sign + vignette face the lens.
+export const CHECKPOINTS = (() => {
   const list = [];
-  for (let i = 0; i < NUM_STATIONS; i++) {
-    const t = STATION_START_T + i * STATION_STEP;
-    const position = TRACK_CURVE.getPointAt(t);
-    const tangent = TRACK_CURVE.getTangentAt(t);
-    const platformSign = i % 2 === 0 ? 1 : -1;
-    // side points from the track centre toward the platform
-    const side = new THREE.Vector3()
+  const outward = new THREE.Vector3();
+  for (let i = 0; i < NUM_CHECKPOINTS; i++) {
+    const t = CHECKPOINT_START_T + i * CHECKPOINT_STEP;
+    const position = PATH_CURVE.getPointAt(t);
+    const tangent = PATH_CURVE.getTangentAt(t);
+    outward
+      .set(position.x - SPIRAL_CENTER.x, 0, position.z - SPIRAL_CENTER.z)
+      .normalize();
+    const raw = new THREE.Vector3()
       .crossVectors(UP, tangent)
       .setY(0)
-      .normalize()
-      .multiplyScalar(platformSign);
+      .normalize();
+    // platformSign flips `raw` so `side` always points outward.
+    const platformSign = raw.dot(outward) >= 0 ? 1 : -1;
+    const side = raw.multiplyScalar(platformSign).clone();
     const yaw = Math.atan2(tangent.x, tangent.z);
     list.push({
       index: i,
@@ -78,21 +96,22 @@ export const STATIONS = (() => {
       side,
       platformSign,
       yaw,
-      color: new THREE.Color(STATION_COLORS[i]),
+      color: new THREE.Color(CHECKPOINT_COLORS[i]),
       data: STAGES[i],
-      isFinal: i === NUM_STATIONS - 1,
+      isFinal: i === NUM_CHECKPOINTS - 1,
     });
   }
   return list;
 })();
 
 // --- Scroll -> curve-t warp -------------------------------------------------
-// Piecewise easing with fixed points at every station t, so the tram is at
-// station i exactly when raw scroll equals that station's t (this keeps the
-// DOM OverlayText card timing aligned with arrivals). Between fixed points the
-// motion accelerates mid-segment and glides in/out near stations.
-const WARP_KNOTS = [0, ...STATIONS.map((s) => s.t), 1];
-const EASE_MIX = 0.85; // 1 = full stop at stations, 0 = linear
+// Piecewise easing with fixed points at every checkpoint t, so the student is
+// at checkpoint i exactly when raw scroll equals that checkpoint's t (this
+// keeps the DOM OverlayText card timing aligned with arrivals). Between fixed
+// points the motion accelerates mid-segment and glides in/out near
+// checkpoints.
+const WARP_KNOTS = [0, ...CHECKPOINTS.map((c) => c.t), 1];
+const EASE_MIX = 0.85; // 1 = full stop at checkpoints, 0 = linear
 
 export function warpScroll(s) {
   const x = THREE.MathUtils.clamp(s, 0, 1);
@@ -105,46 +124,36 @@ export function warpScroll(s) {
   return a + (b - a) * (EASE_MIX * e + (1 - EASE_MIX) * u);
 }
 
-// Nearest station index for a given curve t (stations are evenly spaced).
-export function nearestStationIndex(t) {
-  const i = Math.round((t - STATION_START_T) / STATION_STEP);
-  return THREE.MathUtils.clamp(i, 0, NUM_STATIONS - 1);
+// Nearest checkpoint index for a given curve t (evenly spaced).
+export function nearestCheckpointIndex(t) {
+  const i = Math.round((t - CHECKPOINT_START_T) / CHECKPOINT_STEP);
+  return THREE.MathUtils.clamp(i, 0, NUM_CHECKPOINTS - 1);
 }
 
-// --- Neon tunnel gate sequences ---------------------------------------------
-// Three short runs of glowing gate rings placed mid-segment (clear of the
-// platforms), which the tram threads through at hyperspeed. Colors echo the
-// neighbouring stations' accents.
-export const TUNNELS = [
-  { center: 0.3, rings: 6, spacing: 0.008, color: '#38bdf8' },
-  { center: 0.5, rings: 6, spacing: 0.008, color: '#a78bfa' },
-  { center: 0.795, rings: 6, spacing: 0.008, color: '#f472b6' },
-];
-
-// --- Shared per-frame tram motion state ------------------------------------
-// Written by the scene driver (runs first, mounted first), read by the tram,
-// trail, camera rig, speed-line field and post-fx rig. A plain mutable
-// object: no React state, no allocation.
-export const tramMotion = {
+// --- Shared per-frame climb motion state ------------------------------------
+// Written by the scene driver (useFrame priority -2, so it runs before every
+// other subscriber), read by the student, page rush, sparkle wake, camera rig
+// and post-fx. A plain mutable object: no React state, no allocation.
+export const climbMotion = {
   t: 0,
   prevT: 0,
   speed: 0, // |dt/dt| estimate in curve-t units per second
-  // 0..1 hyperspeed factor: rises when the tram is flying mid-segment,
-  // eases out as the warp curve brakes it into a station. Drives the warp
-  // speed-lines, FOV kick, trail surge and chromatic-aberration spike.
-  hyper: 0,
-  // 1 on the frame the tram crosses a station, decaying to 0 over ~1.1s.
-  // Drives the arrival "slow-mo" camera punch and CA blip.
+  // 0..1 rush factor: rises when the student is flying mid-segment, eases
+  // out as the warp curve brakes into a checkpoint. Drives the flying-page
+  // rush, FOV kick, sparkle-wake surge and chromatic-aberration spike.
+  rush: 0,
+  // 1 on the frame the student crosses a checkpoint, decaying to 0 over
+  // ~1.1s. Drives the arrival "slow-mo" camera punch and CA blip.
   arrivalPulse: 0,
-  // Index of the most recently crossed station (-1 before the first).
+  // Index of the most recently crossed checkpoint (-1 before the first).
   arrivalIndex: -1,
 };
 
-export function resetTramMotion() {
-  tramMotion.t = 0;
-  tramMotion.prevT = 0;
-  tramMotion.speed = 0;
-  tramMotion.hyper = 0;
-  tramMotion.arrivalPulse = 0;
-  tramMotion.arrivalIndex = -1;
+export function resetClimbMotion() {
+  climbMotion.t = 0;
+  climbMotion.prevT = 0;
+  climbMotion.speed = 0;
+  climbMotion.rush = 0;
+  climbMotion.arrivalPulse = 0;
+  climbMotion.arrivalIndex = -1;
 }

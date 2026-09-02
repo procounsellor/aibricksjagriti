@@ -1,24 +1,12 @@
-// ProCounsel Page Color Palette — Neon Metro Timeline
-// Near-black night-city ground for the neon world to glow against.
-export const BACKGROUND_DARK = '#06060f';
+// ProCounsel Page Color Palette — "Ascent to Graduation"
+// A dreamlike study-cosmos: deep indigo night at the base of the climb,
+// warming through violet toward a golden dawn at the summit.
+export const BACKGROUND_DARK = '#08081a';
 export const PRIMARY_INDIGO = '#818cf8';
-export const ACCENT_GREEN = '#34d399';
-export const ACCENT_GREEN_DARK = '#10b981';
-export const ACCENT_YELLOW = '#fbbf24';
-export const ACCENT_YELLOW_DARK = '#f59e0b';
-export const OBSTACLE_RED = '#f87171';
-export const OBSTACLE_RED_DARK = '#ef4444';
-export const OBSTACLE_YELLOW = '#fbbf24';
-export const OBSTACLE_YELLOW_DARK = '#f59e0b';
-export const OBSTACLE_BLUE = '#60a5fa';
-export const OBSTACLE_BLUE_DARK = '#3b82f6';
-export const OBSTACLE_PURPLE = '#a78bfa';
-export const OBSTACLE_PURPLE_DARK = '#8b5cf6';
-export const STUDENT_CYAN = '#00ffff';
 export const WHITE = '#ffffff';
-export const GOLD = 'gold';
+export const GOLD = '#fbbf24';
 
-// --- Neon Metro palette ---
+// --- Ascent palette ---
 export const NEON_CYAN = '#22d3ee';
 export const NEON_BLUE = '#60a5fa';
 export const NEON_INDIGO = '#818cf8';
@@ -26,18 +14,24 @@ export const NEON_VIOLET = '#a78bfa';
 export const NEON_PURPLE = '#c084fc';
 export const NEON_MAGENTA = '#e879f9';
 export const NEON_PINK = '#f472b6';
-export const NEON_ROSE = '#fb7185';
 export const NEON_GOLD = '#fbbf24';
+export const DAWN_ROSE = '#fda4af';
+export const DAWN_AMBER = '#fcd34d';
 
-// Track / infrastructure
-export const TRACK_GLOW = '#67e8f9';
-export const RAIL_DIM = '#4c1d95';
-export const TIE_DARK = '#141428';
-export const STRUCTURE_DARK = '#10101f';
-export const GRID_LINE = '#312e81';
+// The book path — giant glowing tomes used as stepping stones.
+export const PARCHMENT = '#f5e6c8';
+export const PARCHMENT_WARM = '#eed9a6';
+export const BOOK_INDIGO = '#3730a3';
+export const BOOK_CYAN = '#155e75';
+export const BOOK_COVER_DARK = '#141233';
+export const PAGE_GLOW = '#ffe9b8';
 
-// One accent per admission stage: cyan -> violet -> magenta -> gold (success)
-export const STATION_COLORS = [
+// Structure / prop darks
+export const STRUCTURE_DARK = '#12102a';
+export const WOOD_DARK = '#2b1d3a';
+
+// One accent per admission stage: cyan -> violet -> magenta -> gold (summit).
+export const CHECKPOINT_COLORS = [
   '#22d3ee', // 1 Exam Preps
   '#38bdf8', // 2 Board Exams
   '#60a5fa', // 3 Entrance Exams
@@ -46,5 +40,5 @@ export const STATION_COLORS = [
   '#c084fc', // 6 Seat Allotments
   '#e879f9', // 7 SPOT / IL Rounds
   '#f472b6', // 8 Academic Year
-  '#fbbf24', // 9 Success — gold
+  '#fbbf24', // 9 Graduation — gold
 ];

@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { RAIL_LIFT } from '../trackData';
+import { WALK_LIFT } from '../trackData';
 
 const COUNT = 80;
 const LIFE_SECONDS = 0.9;
@@ -25,9 +25,9 @@ const burstMat = new THREE.PointsMaterial({
 });
 
 /**
- * A single pre-allocated particle pool for station-arrival bursts.
- * The scene driver calls `trigger(station)` imperatively when the tram
- * crosses a station t — no setState, no allocation in the frame loop.
+ * A single pre-allocated particle pool for checkpoint-arrival spark bursts.
+ * The scene driver calls `trigger(checkpoint)` imperatively when the student
+ * crosses a checkpoint t — no setState, no allocation in the frame loop.
  * 1 draw call while active, hidden otherwise.
  */
 const ArrivalBursts = forwardRef(function ArrivalBursts(props, ref) {
@@ -58,12 +58,12 @@ const ArrivalBursts = forwardRef(function ArrivalBursts(props, ref) {
   useImperativeHandle(
     ref,
     () => ({
-      trigger: (station) => {
+      trigger: (checkpoint) => {
         const s = state.current;
         const points = pointsRef.current;
         if (!points) return;
-        s.origin.copy(station.position);
-        s.origin.y += RAIL_LIFT + 0.6;
+        s.origin.copy(checkpoint.position);
+        s.origin.y += WALK_LIFT + 0.9;
         const vel = s.vel;
         const colors = geometry.attributes.color.array;
         const positions = geometry.attributes.position.array;
@@ -77,12 +77,12 @@ const ArrivalBursts = forwardRef(function ArrivalBursts(props, ref) {
           vel[vi] = r * Math.cos(theta) * speed;
           vel[vi + 1] = (z * 0.7 + 0.5) * speed;
           vel[vi + 2] = r * Math.sin(theta) * speed;
-          // Station accent color with brightness variation, pushed into HDR
-          // so the burst sprays real bloom.
+          // Checkpoint accent color with brightness variation, pushed into
+          // HDR so the burst sprays real bloom.
           const bright = 1.3 + Math.random() * 1.1;
-          colors[vi] = station.color.r * bright;
-          colors[vi + 1] = station.color.g * bright;
-          colors[vi + 2] = station.color.b * bright;
+          colors[vi] = checkpoint.color.r * bright;
+          colors[vi + 1] = checkpoint.color.g * bright;
+          colors[vi + 2] = checkpoint.color.b * bright;
           positions[vi] = s.origin.x;
           positions[vi + 1] = s.origin.y;
           positions[vi + 2] = s.origin.z;

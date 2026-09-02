@@ -191,7 +191,10 @@ export default function ProCounselPage() {
           dpr={dpr}
         >
           <color attach="background" args={[BACKGROUND_DARK]} />
-          <fog attach="fog" args={[BACKGROUND_DARK, 28, 95]} />
+          {/* Wider fog band than the metro scene: the book spiral is ~70
+              units across, so the far side of the climb fades dreamily
+              instead of vanishing. */}
+          <fog attach="fog" args={[BACKGROUND_DARK, 36, 190]} />
           <AdaptiveQualityMonitor onIncline={onIncline} onDecline={onDecline} />
           <Suspense fallback={null}>
             <ProCounselScene scrollRef={scrollProgressRef} />
