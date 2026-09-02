@@ -226,6 +226,11 @@ export default function HomePage() {
 
         {/* Hero content */}
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center">
+          {/* Soft radial dim behind the copy so the beacon/bloom can't wash it out */}
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-1/2 -z-10 h-[34rem] w-[64rem] max-w-[120vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(3,6,18,0.72)_0%,rgba(3,6,18,0.45)_45%,transparent_72%)]"
+          />
           <motion.h1
             {...heroItem(0.1)}
             className="max-w-5xl text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-white sm:text-6xl lg:text-7xl"
