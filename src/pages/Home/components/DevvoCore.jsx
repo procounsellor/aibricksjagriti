@@ -101,7 +101,7 @@ export default function DevvoCore({ reducedMotion = false }) {
       }),
     []
   );
-  const beaconMaterial = useMemo(() => makeColumnMaterial(CORE_CYAN, 1.9), []);
+  const beaconMaterial = useMemo(() => makeColumnMaterial(CORE_CYAN, 1.05), []);
   const glyphMaterial = useMemo(
     () =>
       new THREE.PointsMaterial({
@@ -163,8 +163,10 @@ export default function DevvoCore({ reducedMotion = false }) {
     glyphMaterial.color.copy(baseCyan).multiplyScalar(1.1 + charge * 0.8);
 
     const pulse = reducedMotion ? 1 : 0.78 + 0.22 * Math.sin(t * 1.6);
+    // Kept faint: the column sits center-screen behind the hero headline,
+    // so it must never wash the copy out.
     beaconMaterial.uniforms.uOpacity.value =
-      (0.2 + charge * 0.25 + boost * 0.4) * pulse;
+      (0.09 + charge * 0.14 + boost * 0.25) * pulse;
 
     if (!reducedMotion) {
       // Clamped delta: a background-tab return must not lurch the gyroscope.
@@ -247,7 +249,7 @@ export default function DevvoCore({ reducedMotion = false }) {
       {/* Beacon column to the sky */}
       <mesh
         position={[0, CORE_ORB_Y + 11, 0]}
-        scale={[0.9, 22, 0.9]}
+        scale={[0.55, 22, 0.55]}
         geometry={columnGeometry}
         material={beaconMaterial}
         frustumCulled={false}

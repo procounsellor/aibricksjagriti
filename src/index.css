@@ -101,7 +101,6 @@ body {
 
   .text-gradient-brand {
     /* inline-block + bottom padding keep bg-clip-text from shaving the g/y descenders */
-    @apply inline-block bg-gradient-to-r from-cyan-300 via-sky-300 to-fuchsia-300 bg-clip-text pb-[0.09em] -mb-[0.09em] text-transparent;
-    filter: drop-shadow(0 2px 18px rgba(34, 211, 238, 0.35));
+    @apply inline-block bg-gradient-to-r from-cyan-400 via-sky-500 to-fuchsia-500 bg-clip-text pb-[0.09em] -mb-[0.09em] text-transparent;
   }
 }
