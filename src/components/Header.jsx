@@ -1,20 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Building,
   Home,
   Brain,
   GraduationCap,
+  Languages,
   Menu,
   X,
   Users,
   Tag,
 } from "lucide-react";
-import productsConfig from "../config/products.json";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 import logo from "../assets/logo.png";
 
-const productLinks = [
+const NAV_LINKS = [
   { id: "Home", nameKey: "navHome", icon: Home, path: "/" },
   { id: "About Us", nameKey: "navAbout", icon: Users, path: "/about-us" },
   { id: "AiBricks", nameKey: "navAiBricks", icon: Building, path: "/aiBricks" },
@@ -36,76 +38,121 @@ const productLinks = [
 export default function Header({ onChangeLang }) {
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  const prefersReducedMotion = useReducedMotion();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const currentLang = i18n.language;
 
-  const NavLinks = () => (
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close the mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const linkClasses = (isActive) =>
+    `relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200 ${
+      isActive
+        ? "text-cyan-300 bg-cyan-400/[0.08] ring-1 ring-inset ring-cyan-400/25"
+        : "text-slate-300 hover:text-white hover:bg-white/[0.06]"
+    }`;
+
+  const NavLinks = ({ mobile = false }) => (
     <>
-      {productLinks.map((page) => {
+      {NAV_LINKS.map((page) => {
         const isActive = location.pathname === page.path;
         return (
           <Link
             key={page.id}
             to={page.path}
+            aria-current={isActive ? "page" : undefined}
             onClick={() => setIsMobileMenuOpen(false)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              isActive
-                ? "text-cyan-400 bg-gray-800"
-                : "text-gray-300 hover:text-white hover:bg-gray-700"
-            }`}
+            className={`${linkClasses(isActive)} ${mobile ? "w-full" : ""}`}
           >
-            <page.icon className="w-4 h-4" />
+            <page.icon aria-hidden="true" className="h-4 w-4" />
             {t(page.nameKey)}
           </Link>
         );
       })}
       <button
+        type="button"
         onClick={() => {
           onChangeLang(currentLang === "en" ? "es" : "en");
           setIsMobileMenuOpen(false);
         }}
-        className="px-4 py-2 text-sm font-medium text-left text-gray-300 rounded-md transition-all hover:text-white hover:bg-gray-700"
+        className={`flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-slate-300 transition-colors duration-200 hover:border-white/30 hover:bg-white/[0.08] hover:text-white ${
+          mobile ? "w-full justify-center" : ""
+        }`}
       >
+        <Languages aria-hidden="true" className="h-4 w-4" />
         {t("langSwitch")}
       </button>
     </>
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 text-white bg-black bg-opacity-30 backdrop-blur-md">
-      <div className="container flex items-center justify-between h-16 px-4 mx-auto max-w-7xl">
-        <Link to="/" className="flex items-center py-2">
-          <img src={logo} alt="Devvo home" className="h-12 w-auto" />
+    <header
+      className={`fixed inset-x-0 top-0 z-50 text-white transition-all duration-300 ${
+        scrolled || isMobileMenuOpen
+          ? "border-b border-white/[0.08] bg-ink-950/80 backdrop-blur-xl"
+          : "border-b border-transparent bg-transparent"
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+        <Link to="/" className="flex items-center rounded-md py-2">
+          <img src={logo} alt="Devvo — home" className="h-11 w-auto" />
         </Link>
-        <nav className="items-center hidden gap-2 md:flex">
+
+        <nav
+          aria-label={t("navHome")}
+          className="hidden items-center gap-1.5 md:flex"
+        >
           <NavLinks />
         </nav>
+
         <div className="md:hidden">
           <button
+            type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-md hover:bg-gray-700"
-            aria-label="Toggle menu"
+            className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-white/[0.08]"
+            aria-label={isMobileMenuOpen ? t("headerMenuClose") : t("headerMenuOpen")}
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-menu"
           >
             {isMobileMenuOpen ? (
-              <X className="w-6 h-6" />
+              <X aria-hidden="true" className="h-6 w-6" />
             ) : (
-              <Menu className="w-6 h-6" />
+              <Menu aria-hidden="true" className="h-6 w-6" />
             )}
           </button>
         </div>
       </div>
-      {isMobileMenuOpen && (
-        <div
-          id="mobile-menu"
-          className="absolute left-0 right-0 p-4 bg-gray-900 border-t border-gray-700 md:hidden top-16"
-        >
-          <nav className="flex flex-col gap-2">
-            <NavLinks />
-          </nav>
-        </div>
-      )}
+
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            id="mobile-menu"
+            initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
+            animate={
+              prefersReducedMotion
+                ? { opacity: 1, height: "auto" }
+                : { opacity: 1, height: "auto" }
+            }
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.25, ease: "easeOut" }}
+            className="overflow-hidden border-t border-white/[0.08] bg-ink-950/95 backdrop-blur-xl md:hidden"
+          >
+            <nav className="flex flex-col gap-1.5 p-4">
+              <NavLinks mobile />
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
