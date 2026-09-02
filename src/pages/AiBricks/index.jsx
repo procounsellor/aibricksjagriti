@@ -191,7 +191,7 @@
 //   );
 // }
 
-import React, { Suspense, useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, Preload, ScrollControls } from "@react-three/drei";
 import { motion } from "framer-motion";
@@ -216,6 +216,9 @@ export default function AiBricksPage() {
   const prefersReducedMotion = useReducedMotion();
   // Device-adaptive dpr cap; PostFX also reads the tier for bloom cost.
   const { dpr, onIncline, onDecline } = useAdaptiveQuality(DPR_STEPS);
+  // Loading veil: the three.js chunk is large, so on slow networks the canvas
+  // area would otherwise sit as a black void with no feedback.
+  const [sceneReady, setSceneReady] = useState(false);
 
   // WebGL context-loss handling - preventDefault allows the browser to
   // restore the context instead of leaving a dead canvas
@@ -230,6 +233,18 @@ export default function AiBricksPage() {
 
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden">
+      {/* Loading veil — covers the canvas until the WebGL scene is up */}
+      <div
+        aria-hidden={sceneReady}
+        className={`absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-[#1a1206] via-[#2b1d0e] to-[#0c0804] transition-opacity duration-700 ${
+          sceneReady ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+      >
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-amber-300/30 border-t-amber-300" />
+        <p className="text-sm font-medium tracking-[0.2em] text-amber-100/80 uppercase">
+          {t("aiBricksTitle")}
+        </p>
+      </div>
       <Canvas
         camera={{ position: [0, 20, 28], fov: 75 }}
         shadows
@@ -250,6 +265,8 @@ export default function AiBricksPage() {
           glCleanupRef.current = () => {
             canvas.removeEventListener("webglcontextlost", handleContextLost, false);
           };
+          // Give the first frames a beat to compile before lifting the veil.
+          setTimeout(() => setSceneReady(true), 400);
         }}
       >
         <color attach="background" args={[colors.sky]} />
@@ -266,17 +283,21 @@ export default function AiBricksPage() {
             <Html fullscreen style={{ pointerEvents: "none" }}>
               {/* HERO */}
               <section className="flex flex-col items-center justify-center w-full h-screen px-4 text-center">
+                {/* The hero is always in view on load — animate on mount, never
+                    gate it behind an IntersectionObserver inside the portal. */}
                 <motion.h2
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.15 }}
                   className="text-2xl font-bold sm:text-3xl md:text-5xl lg:text-6xl"
                 >
                   {t("aiBricksTitle")}
                 </motion.h2>
 
                 <motion.p
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.3 }}
                   className="max-w-xl mt-4 text-sm sm:text-base md:text-lg text-black px-4 py-3 rounded-lg bg-white/40 backdrop-blur-sm"
                 >
                   {t("aiBricksIntro")}
